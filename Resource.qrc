@@ -1,0 +1,18 @@
+<RCC>
+    <qresource prefix="/">
+        <file>button/Exit.png</file>
+        <file>button/Shell.png</file>
+        <file>button/Wheelchair.png</file>
+        <file>resource/beimihu.jpg</file>
+        <file>resource/bianfuren.jpg</file>
+        <file>resource/bulianshi.jpg</file>
+        <file>resource/daqiao.jpg</file>
+        <file>resource/sunluyu.jpg</file>
+        <file>resource/wangyi.jpg</file>
+        <file>resource/wuxian.jpg</file>
+        <file>resource/zhangchunhua.jpg</file>
+        <file>resource/zhaoxiang.jpg</file>
+        <file>resource/zhenji.png</file>
+        <file>resource/zhongyan.jpg</file>
+    </qresource>
+</RCC>
