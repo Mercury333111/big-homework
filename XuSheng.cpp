@@ -46,88 +46,92 @@ void beginLayout() {
 
 }
 //定时
-int Timer(time_t num, int id) {
-	static time_t start[10];
-	time_t end = clock();
+int Timer(DWORD num, int id) {
+	static DWORD start[10];
+	DWORD end = GetTickCount();
 	if (end - start[id] > num) {
 		start[id] = end;
 		return 1;
 	}
 	return 0;
 }
-//障碍
-struct Wei {
+// 障碍物结构体
+typedef struct {
 	int x;
 	int y;
 	int width;
 	int height;
-};
-struct Wei* createWei(int x, int y, int width, int height)
-{
-	struct Wei* cc = (struct Wei*)malloc(sizeof(struct Wei));
-	assert(cc);//一个断言
-	cc->x = x;
-	cc->y = y;
-	cc->width = width;
-	cc->height = height;
-	return cc;
+} Obstacle;
+
+Obstacle* createObstacle(int x, int y, int width, int height) {
+	Obstacle* ob = (Obstacle*)malloc(sizeof(Obstacle));
+	assert(ob);
+	ob->x = x;
+	ob->y = y;
+	ob->width = width;
+	ob->height = height;
+	return ob;
 }
-//制作、移动障碍
-void createWei(struct Wei* cc) {
+
+void drawObstacle(Obstacle* ob) {
 	setfillcolor(RGB(176, 196, 222));
-	solidrectangle(cc->x, cc->y, cc->x + cc->width, cc->y + cc->height);
+	solidrectangle(ob->x, ob->y, ob->x + ob->width, ob->y + ob->height);
 }
-void moveWei(struct Wei* cc) {
-	cc->x -= 20;
+
+void moveObstacle(Obstacle* ob) {
+	ob->x -= 20;
 }
-struct Node {
-	struct Wei* cc;
+
+typedef struct Node {
+	Obstacle* ob;
 	struct Node* next;
-};
-struct Node* list = NULL;
-struct Node* createList() {
-	struct Node* headNode = (struct Node*)malloc(sizeof(struct Node));
-	assert(headNode);
-	headNode->cc = NULL;
-	headNode->next = NULL;
-	return headNode;
+} Node;
+
+Node* createList() {
+	Node* head = (Node*)malloc(sizeof(Node));
+	assert(head);
+	head->ob = NULL;
+	head->next = NULL;
+	return head;
 }
-struct Node* createNode(struct Wei* cc) {
-	struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+
+void insert(Node* head, Obstacle* ob) {
+	Node* newNode = (Node*)malloc(sizeof(Node));
 	assert(newNode);
-	newNode->cc = cc;
-	newNode->next = NULL;
-	return newNode;
+	newNode->ob = ob;
+	newNode->next = head->next;
+	head->next = newNode;
 }
-void insert(struct Node* headNode, struct Wei* cc) {
-	struct Node* newNode = createNode(cc);
-	newNode->next = headNode->next;
-}
-void printList(struct Node* headNode) {
-	struct Node* cmove = headNode->next;
-	while (cmove != NULL) {
-		createWei(cmove->cc);
-		moveWei(cmove->cc);
-		cmove = cmove->next;
+
+void printList(Node* head) {
+	Node* curr = head->next;
+	while (curr != NULL) {
+		drawObstacle(curr->ob);
+		moveObstacle(curr->ob);
+		curr = curr->next;
 	}
 }
-//碰撞
-int hitWei(int x, int y, int width, int height, struct Node* list) {
-	struct Node* cmove = list->next;
-	while (cmove != NULL) {
-		if (cmove->cc->x >= (x - cmove->cc->width) && cmove->cc->x <= x + width) {
-			if (cmove->cc->y >= (y - cmove->cc->height) && cmove->cc->y <= y + height) {
+
+int hitObstacle(int x, int y, int width, int height, Node* list) {
+	Node* curr = list->next;
+	while (curr != NULL) {
+		if (curr->ob->x >= (x - curr->ob->width) && curr->ob->x <= x + width) {
+			if (curr->ob->y >= (y - curr->ob->height) && curr->ob->y <= y + height) {
 				return 1;
 			}
 		}
-		cmove = cmove->next;
+		curr = curr->next;
 	}
 	return 0;
 }
+
 //徐盛
 IMAGE DOWN[5];
 IMAGE JUMP[5];
 IMAGE RUN[5];
+IMAGE DOWNB[5];
+IMAGE JUMPB[5];
+IMAGE RUNB[5];
 HWND hwnd = NULL;
 void loadResource() {
 	for (int i = 1;i <= 5;i++) {
@@ -138,18 +142,25 @@ void loadResource() {
 		loadimage(RUN + i - 1, fileName, 100, 100);
 		sprintf(fileName, "DOWN%d.png", i);
 		loadimage(DOWN + i - 1, fileName, 80, 50);
+		sprintf(fileName, "JUMPB%d.png", i);
+		loadimage(JUMP + i - 1, fileName, 100, 100);
+		sprintf(fileName, "RUNB%d.png", i);
+		loadimage(RUN + i - 1, fileName, 100, 100);
+		sprintf(fileName, "DOWNB%d.png", i);
+		loadimage(DOWN + i - 1, fileName, 80, 50);
 	}
 }
 //动作.RUN
-void move(int FrameNum) {
+void move(Node*list,int FrameNum) {
 	BeginBatchDraw();
 	int i = 0;
 	while (i < FrameNum) {
 		cleardevice();
 		solidrectangle(0, 360, 600, 400);
-		putimage(50, 260, RUN + i);
-		if (hitWei(30, 260, 100, 100, list)) {
-			MessageBox(hwnd, "GAME OVER","Exit",MB_OK);
+		putimage(50, 260, RUN + i,SRCAND);
+		putimage(50, 260, RUNB + i,SRCPAINT);
+		if (hitObstacle(30, 260, 100, 100,list)) {
+			MessageBox(hwnd, "GAME OVER","GAME OVER",MB_OK);
 			exit(0);
 		}
 		i++;
@@ -160,13 +171,14 @@ void move(int FrameNum) {
 	EndBatchDraw();
 }
 //DOWN
-void down(int FrameNum) {
+void down(Node* list, int FrameNum) {
 	BeginBatchDraw();
 	int i = 0;
 	while (i < FrameNum) {
 		cleardevice();
 		solidrectangle(0, 360, 600, 400);
-		putimage(50, 310, DOWN + i);
+		putimage(50, 310, DOWN + i,SRCAND);
+		putimage(50, 310, DOWNB + i,SRCPAINT);
 		i++;
 		printList(list);
 		Sleep(50);
@@ -176,13 +188,14 @@ void down(int FrameNum) {
 }
 
 //JUMP
-void jump() { 
+void jump(Node* list) {
 	BeginBatchDraw();
 	int y = 260;
 	for (int i = 0;i <= 5;i++) {
 		cleardevice();
 		solidrectangle(0, 360, 600, 400);
-		putimage(50, y, &JUMP[0]);
+		putimage(50, y, &JUMP[0],SRCAND);
+		putimage(50, y, &JUMPB[0],SRCPAINT);
 		y -= 30;
 		printList(list);
 		Sleep(50);
@@ -191,7 +204,8 @@ void jump() {
 	for (int i = 0;i <= 5;i++) {
 		cleardevice();
 		solidrectangle(0, 360, 600, 400);
-		putimage(50, y, &JUMP[4]);
+		putimage(50, y, &JUMP[4],SRCAND);
+		putimage(50, y, &JUMPB[4],SRCPAINT);
 		y += 30;
 		printList(list);
 		Sleep(50);
@@ -199,36 +213,29 @@ void jump() {
 	}
 	EndBatchDraw();
 }
-void keyDOWN() {
+void keyDOWN(Node* list) {
 	if (GetAsyncKeyState('S')) {
-		down(5);
+		down(list,5);
 	}
 	if (GetAsyncKeyState('W')) {
-		jump();
+		jump(list);
 	}
 }
-
-
-
-
-
-
-
-
+//主体
 int main() {
-	list = createList();
+	Node* obstacleList = createList();
 	srand((unsigned int)time(0));
 	loadResource();
-	hwnd=initgraph(600, 400);
+	HWND hwnd=initgraph(600, 400);
 	setbkcolor(RGB(205, 133, 63));
 	cleardevice();
 	beginLayout();
 	//Game
 	while (1) {
-		move(5);
-		keyDOWN();
+		move(obstacleList,5);
+		keyDOWN(obstacleList);
 		if (Timer(1000, 0)) {
-			insert(list, createWei(600, 315 - rand() % 100, 45, 45));
+			insert(obstacleList, createObstacle(600, 315 - rand() % 100, 45, 45));
 		}
 	}
 	closegraph();
